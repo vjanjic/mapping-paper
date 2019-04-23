@@ -1,0 +1,119 @@
+#!/usr/bin/perl
+
+use POSIX;
+
+sub max {
+  $input1 = shift;
+  $input2 = shift;
+  if ($input1 > $input2) {
+    return $input1;
+  } else {
+    return $input2;
+  }
+}
+
+sub min {
+  $input1 = shift;
+  $input2 = shift;
+  if ($input1 < $input2) {
+    return $input1;
+  } else {
+    return $input2;
+  }
+
+}
+
+
+sub cfarm {
+  $ninputs = shift;
+  $tdist = shift;
+  $tgather = shift;
+  $tcomp = shift;
+  $ncores = shift;
+  $nworkers = shift;
+
+  $time = $tcomp * ceil ( $ninputs / min ($ncores, $nworkers) ) + ($tdist + $tgather) * min ($ncores, $ninputs);
+  return $time;
+}
+
+sub cpipe {
+  $ninputs = shift;
+  $tcomm = shift;
+  $oneStage1 = shift;
+  $oneStage2 = shift;
+  
+  my $i;
+  my $time = 0;
+  my $factor = 1;
+
+  $time = $oneStage1 + $oneStage2 + ($ninputs - 2) * max($oneStage1,$oneStage2);
+
+  return $time;
+}
+
+sub calculate_cost_farm {
+  $ninputs = shift;
+  $tdist = shift;
+  $tgather = shift;
+  $tcomp = shift;
+  
+  my $i;
+  my $best = 10000000;
+  my $tmp;
+
+  for ($i=1; $i<12; $i++) {
+    $tmp = &cfarm($ninputs, $tdist, $tgather, $tcomp, $i, $i);
+    if ($best > $tmp) {
+      $best = $tmp;
+    }
+  }
+  
+  return $best;
+}
+
+$nrimages = 20;
+$cseqf1 = 0.2;
+$cseqf2CPU = 6.6;
+$cseqf2GPU = 0.08;
+
+printf("Version 1 CPU : %f\n", $nrimages * ($cseqf1 + $cseqf2CPU));
+printf("Version 1 GPU : %f\n ", $nrimages * ($cseqf1 + $cseqf2GPU));
+$fife = &cpipe(20,0,$cseqf1,$cseqf2CPU);
+printf("Version 2 CPU : %f\n", $fife);
+$fife = &cpipe(20,0,$cseqf1,$cseqf2GPU);
+printf("Version 2 GPU : %f\n", $fife);
+$fife = max(&calculate_cost_farm($nrimages,0,0,$cseqf1),$cseqf2CPU * $nrimages);
+printf("Version 3 CPU : %f\n", $fife);
+$fife = max(&calculate_cost_farm($nrimages,0,0,$cseqf1),$cseqf2GPU * $nrimages);
+printf("Version 3 GPU : %f\n", $fife);
+$fife = max($nrimages * $cseqf1,&calculate_cost_farm($nrimages,0,0,$cseqf2CPU));
+printf("Version 4 CPU : %f\n", $fife);
+$fife = max($nrimages * $cseqf1,&calculate_cost_farm($nrimages,0,0,$cseqf2GPU));
+printf("Version 4 GPU : %f\n", $fife);
+$fife = max(&calculate_cost_farm($nrimages,0,0,$cseqf1),&calculate_cost_farm($nrimages,0,0,$cseqf2CPU));
+printf("Version 5 CPU : %f\n", $fife);
+$fife = max(&calculate_cost_farm($nrimages,0,0,$cseqf1),&calculate_cost_farm($nrimages,0,0,$cseqf2GPU));
+printf("Version 5 GPU : %f\n", $fife);
+$foobar = $cseqf1 + $cseqf2CPU;
+$fife = &calculate_cost_farm($nrimages,0,0,$foobar);
+printf("Version 6 CPU : %f\n", $fife);
+$foobar = $cseqf1 + $cseqf2GPU;
+$fife = &calculate_cost_farm($nrimages,0,0,$foobar);
+printf("Version 6 GPU : %f\n", $fife);
+$fife = &cfarm($nrimages,0,0,$cseqf1+$cseqfCPU,12,12);
+printf("Version 10 CPU : %f\n", $fife);
+$fife = &cfarm($nrimages,0,0,$cseqf1+$cseqf2GPU,12,12);
+printf("Version 10 GPU : %f\n", $fife);
+$fife = &calculate_cost_farm($nrimages,0,0,$cseqf1) + &calculate_cost_farm($nrimages,0,0,$cseqf2CPU);
+printf("Version 11 CPU : %f\n", $fife);
+$fife = &calculate_cost_farm($nrimages,0,0,$cseqf1) + &cfarm(20,0,0,$cseqf2GPU,1,1);
+printf("Version 11 GPU : %f\n", $fife);
+$fife = &calculate_cost_farm($nrimages,0,0,$cseqf1) + &cfarm($nrimages,0,0,$cseqf2CPU,1,1);
+printf("Version 12 CPU : %f\n", $fife);
+$fife = &calculate_cost_farm($nrimages,0,0,$cseqf1) + &cfarm(20,0,0,$cseqf2GPU,1,1);
+printf("Version 12 GPU : %f\n", $fife);
+$fife = &cfarm($nrimages,0,0,$cseqf1,1,1) + &calculate_cost_farm($nrimages,0,0,$cseqf2CPU);
+printf("Version 13 CPU : %f\n", $fife);
+$fife = &cfarm($nrimages,0,0,$cseqf1,1,1) + &cfarm($nrimages,0,0,$cseqf2GPU,1,1);
+printf("Version 13 GPU : %f\n", $fife);
+
